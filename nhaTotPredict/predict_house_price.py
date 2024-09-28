@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.linear_model import LinearRegression
 
-def predict_house_price(ward, district, size, rooms, toilets, floors, house_type, furnishing_sell):
+def predict_house_price(ward, district, size, rooms, toilets, floors, house_type, furnishing_sell,urgent,pty_characteristics):
     # Load the dataset
     df = pd.read_csv('houseDataset.csv')
 
@@ -11,7 +11,7 @@ def predict_house_price(ward, district, size, rooms, toilets, floors, house_type
     encoder = OneHotEncoder(handle_unknown='ignore')
 
     # Fit encoder on existing categories
-    encoded_features = encoder.fit_transform(df[['ward', 'district', 'house_type', 'furnishing_sell']])
+    encoded_features = encoder.fit_transform(df[['ward', 'district', 'house_type', 'furnishing_sell', 'urgent', "pty_characteristics"]])
 
     # Combine encoded features with numeric features
     X = np.hstack((encoded_features.toarray(), df[['size', 'rooms', 'toilets', 'floors']].values))
@@ -31,10 +31,12 @@ def predict_house_price(ward, district, size, rooms, toilets, floors, house_type
         'floors': [floors],
         'house_type': [house_type],
         'furnishing_sell': [furnishing_sell],
+        'urgent': [urgent],
+        'pty_characteristics': [pty_characteristics],
     })
 
     # Encode the new house data with handling for unknown categories
-    encoded_new_house = encoder.transform(new_house[['ward', 'district', 'house_type', 'furnishing_sell']]).toarray()
+    encoded_new_house = encoder.transform(new_house[['ward', 'district', 'house_type', 'furnishing_sell', 'urgent', "pty_characteristics"]]).toarray()
     new_house_features = np.hstack((encoded_new_house, new_house[['size', 'rooms', 'toilets', 'floors']].values))
 
     # Predict the price
