@@ -2,6 +2,35 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.linear_model import LinearRegression
+import joblib 
+
+def train_and_save_model():
+    # Load the dataset
+    df = pd.read_csv('houseDataset.csv')
+
+    # Initialize OneHotEncoder với handle_unknown='ignore' để xử lý các loại chưa thấy
+    encoder = OneHotEncoder(handle_unknown='ignore')
+
+    # Fit encoder trên các loại hiện có
+    encoded_features = encoder.fit_transform(df[['ward', 'district', 'house_type', 'furnishing_sell', 'urgent', 'pty_characteristics']])
+
+    # Kết hợp các đặc trưng đã mã hóa với các đặc trưng số
+    X = np.hstack((encoded_features.toarray(), df[['size', 'rooms', 'toilets', 'floors']].values))
+    y = df['price']
+
+    # Huấn luyện mô hình
+    model = LinearRegression()
+    model.fit(X, y)
+
+    # Lưu mô hình đã huấn luyện
+    joblib.dump(model, 'trained_model.joblib')  # Lưu mô hình
+    joblib.dump(encoder, 'encoder.joblib')      # Lưu encoder (nếu cần)
+
+# Gọi hàm để huấn luyện và lưu mô hình
+train_and_save_model()
+
+model = joblib.load('trained_model.joblib')  # Tải mô hình
+encoder = joblib.load('encoder.joblib')  
 
 def predict_house_price(ward, district, size, rooms, toilets, floors, house_type, furnishing_sell,urgent,pty_characteristics):
     # Load the dataset
