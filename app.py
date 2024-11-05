@@ -1,13 +1,58 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from nhaTotPredict.predict_house_price import predict_house_price 
-from nhaTotPredict.predict_apartment_price import predict_apartment_price 
-from nhaTotPredict.predict_land_price import predict_land_price 
-from nhaTotPredict.predict_commercial_price import predict_commercial_price 
+import joblib
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app, resources={r"/housePredict": {"origins": "*"}})
+
+@app.route('/trainHousePredictModel', methods=['POST'])
+def trainHousePredictModel():
+    try:
+        # 1. Đọc dữ liệu từ CSV và chia thành X và y
+        df = pd.read_csv('houseDataset.csv')
+        X = df[['WardId', 'DistrictId', 'Size', 'Rooms', 'Toilets', 'Floors', 'Type', 'FurnishingSell', 'Urgent', 'Characteristics']]
+        y = df['Price']
+
+        # 2. Xác định các cột phân loại và các cột số
+        categorical_features = ['Type', 'FurnishingSell', 'Characteristics', 'Urgent', 'WardId', 'DistrictId']
+        numerical_features = ['Size', 'Rooms', 'Toilets', 'Floors']
+
+        # 3. Thiết lập bộ tiền xử lý với handle_unknown='ignore'
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', StandardScaler(), numerical_features),       # Chuẩn hóa các cột số
+                ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)  # One-Hot Encoding cho các cột phân loại
+            ]
+        )
+
+        # 4. Tạo pipeline bao gồm tiền xử lý và mô hình Linear Regression
+        pipeline = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('model', LinearRegression())
+        ])
+
+        # 5. Chia dữ liệu thành tập huấn luyện và tập kiểm tra
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        # 6. Huấn luyện mô hình
+        pipeline.fit(X_train, y_train)
+
+        # 7. Lưu mô hình đã huấn luyện
+        joblib.dump(pipeline, 'house_price_model.pkl')
+
+        # Return the predicted price as a JSON response
+        return jsonify({
+            'Lưu thành công'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/housePredict', methods=['POST'])
 def housePredict():
@@ -15,19 +60,35 @@ def housePredict():
         data = request.get_json()
 
         # Extract the input features from the request
-        ward = data.get('ward')
-        district = data.get('district')
+        wardId = data.get('wardId')
+        districtId = data.get('districtId')
         size = data.get('size')
         rooms = data.get('rooms')
         toilets = data.get('toilets')
         floors = data.get('floors')
-        house_type = data.get('house_type')
-        furnishing_sell = data.get('furnishing_sell')
+        type = data.get('type')
+        furnishingSell = data.get('furnishingSell')
         urgent = data.get('urgent')
-        pty_characteristics = data.get('pty_characteristics')
+        characteristics = data.get('characteristics')
 
-        # Call the predict_house_price function
-        predicted_price = predict_house_price(ward, district, size, rooms, toilets, floors, house_type, furnishing_sell,urgent,pty_characteristics)
+        new_house = pd.DataFrame({
+            'WardId': [wardId],
+            'DistrictId': [districtId],
+            'Size': [size],
+            'Rooms': [rooms],
+            'Toilets': [toilets],
+            'Floors': [floors],
+            'Type': [type],
+            'FurnishingSell': [furnishingSell],
+            'Urgent': [urgent],
+            'Characteristics': [characteristics],
+        })
+
+        # Tải lại mô hình đã lưu
+        loaded_model = joblib.load('house_price_model.pkl')
+
+        # Dự đoán giá cho ngôi nhà mới
+        predicted_price = loaded_model.predict(new_house)
 
         # Return the predicted price as a JSON response
         return jsonify({
@@ -42,17 +103,31 @@ def apartmentPredict():
         data = request.get_json()
 
         # Extract the input features from the request
-        ward = data.get('ward')
-        district = data.get('district')
+        wardId = data.get('wardId')
+        DistrictId = data.get('DistrictId')
         size = data.get('size')
         rooms = data.get('rooms')
         toilets = data.get('toilets')
-        apartment_type = data.get('apartment_type')
-        furnishing_sell = data.get('furnishing_sell')
+        type = data.get('type')
+        furnishingSell = data.get('furnishingSell')
         urgent = data.get('urgent')
 
-        # Call the predict_apartment_price function
-        predicted_price = predict_apartment_price(ward, district, size, rooms, toilets, apartment_type, furnishing_sell,urgent)
+        new_apartment = pd.DataFrame({
+            'WardId': [wardId],
+            'DistrictId': [DistrictId],
+            'Size': [size],
+            'Rooms': [rooms],
+            'Toilets': [toilets],
+            'Type': [type],
+            'FurnishingSell': [furnishingSell],
+            'Urgent': [urgent],  
+        })
+
+        # Tải lại mô hình đã lưu
+        loaded_model = joblib.load('apartment_price_model.pkl')
+
+        # Dự đoán giá cho ngôi nhà mới
+        predicted_price = loaded_model.predict(new_apartment)
 
         # Return the predicted price as a JSON response
         return jsonify({
@@ -67,15 +142,27 @@ def landPredict():
         data = request.get_json()
 
         # Extract the input features from the request
-        ward = data.get('ward')
-        district = data.get('district')
+        wardId = data.get('wardId')
+        districtId = data.get('districtId')
         size = data.get('size')
-        land_type = data.get('land_type')
-        pty_characteristics = data.get('pty_characteristics')
+        type = data.get('type')
+        characteristics = data.get('characteristics')
         urgent = data.get('urgent')
 
-        # Call the predict_land_price function
-        predicted_price = predict_land_price(ward, district, size, land_type, pty_characteristics,urgent)
+        new_land = pd.DataFrame({
+            'WardId': [wardId],
+            'DistrictId': [districtId],
+            'Size': [size],
+            'Type': [type],
+            'Urgent': [urgent],  
+            'Characteristics': [characteristics],
+        })
+
+        # 8. Tải lại mô hình đã lưu
+        loaded_model = joblib.load('land_price_model.pkl')
+
+        # 9. Dự đoán giá cho ngôi nhà mới
+        predicted_price = loaded_model.predict(new_land)
 
         # Return the predicted price as a JSON response
         return jsonify({
@@ -90,15 +177,27 @@ def commercialPredict():
         data = request.get_json()
 
         # Extract the input features from the request
-        ward = data.get('ward')
-        district = data.get('district')
+        wardId = data.get('wardId')
+        districtId = data.get('districtId')
         size = data.get('size')
-        commercial_type = data.get('commercial_type')
-        furnishing_sell = data.get('furnishing_sell')
+        type = data.get('type')
+        furnishingSell = data.get('furnishingSell')
         urgent = data.get('urgent')
 
-        # Call the predict_commercial__price function
-        predicted_price = predict_commercial_price(ward, district, size, commercial_type, furnishing_sell,urgent)
+        new_commercial = pd.DataFrame({
+            'WardId': [wardId],
+            'DistrictId': [districtId],
+            'Size': [size],
+            'Type': [type],
+            'FurnishingSell': [furnishingSell],
+            'Urgent': [urgent],  
+        })
+
+        # Tải lại mô hình đã lưu
+        loaded_model = joblib.load('commercial_price_model.pkl')
+
+        # Dự đoán giá cho ngôi nhà mới
+        predicted_price = loaded_model.predict(new_commercial)
 
         # Return the predicted price as a JSON response
         return jsonify({

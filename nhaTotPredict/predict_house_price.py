@@ -1,74 +1,63 @@
 import pandas as pd
-import numpy as np
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-import joblib 
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+import joblib
 
 def train_and_save_model():
-    # Load the dataset
+    # 1. Đọc dữ liệu từ CSV và chia thành X và y
     df = pd.read_csv('houseDataset.csv')
+    X = df[['WardId', 'DistrictId', 'Size', 'Rooms', 'Toilets', 'Floors', 'Type', 'FurnishingSell', 'Urgent', 'Characteristics']]
+    y = df['Price']
 
-    # Initialize OneHotEncoder với handle_unknown='ignore' để xử lý các loại chưa thấy
-    encoder = OneHotEncoder(handle_unknown='ignore')
+    # 2. Xác định các cột phân loại và các cột số
+    categorical_features = ['Type', 'FurnishingSell', 'Characteristics', 'Urgent', 'WardId', 'DistrictId']
+    numerical_features = ['Size', 'Rooms', 'Toilets', 'Floors']
 
-    # Fit encoder trên các loại hiện có
-    encoded_features = encoder.fit_transform(df[['ward', 'district', 'house_type', 'furnishing_sell', 'urgent', 'pty_characteristics']])
+    # 3. Thiết lập bộ tiền xử lý với handle_unknown='ignore'
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numerical_features),       # Chuẩn hóa các cột số
+            ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)  # One-Hot Encoding cho các cột phân loại
+        ]
+    )
 
-    # Kết hợp các đặc trưng đã mã hóa với các đặc trưng số
-    X = np.hstack((encoded_features.toarray(), df[['size', 'rooms', 'toilets', 'floors']].values))
-    y = df['price']
+    # 4. Tạo pipeline bao gồm tiền xử lý và mô hình Linear Regression
+    pipeline = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('model', LinearRegression())
+    ])
 
-    # Huấn luyện mô hình
-    model = LinearRegression()
-    model.fit(X, y)
+    # 5. Chia dữ liệu thành tập huấn luyện và tập kiểm tra
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Lưu mô hình đã huấn luyện
-    joblib.dump(model, 'trained_model.joblib')  # Lưu mô hình
-    joblib.dump(encoder, 'encoder.joblib')      # Lưu encoder (nếu cần)
+    # 6. Huấn luyện mô hình
+    pipeline.fit(X_train, y_train)
 
-# Gọi hàm để huấn luyện và lưu mô hình
-train_and_save_model()
+    # 7. Lưu mô hình đã huấn luyện
+    joblib.dump(pipeline, 'house_price_model.pkl')
 
-model = joblib.load('trained_model.joblib')  # Tải mô hình
-encoder = joblib.load('encoder.joblib')  
-
-def predict_house_price(ward, district, size, rooms, toilets, floors, house_type, furnishing_sell,urgent,pty_characteristics):
-    # Load the dataset
-    df = pd.read_csv('houseDataset.csv')
-
-    # Initialize OneHotEncoder with handle_unknown='ignore' to handle unseen categories
-    encoder = OneHotEncoder(handle_unknown='ignore')
-
-    # Fit encoder on existing categories
-    encoded_features = encoder.fit_transform(df[['ward', 'district', 'house_type', 'furnishing_sell', 'urgent', "pty_characteristics"]])
-
-    # Combine encoded features with numeric features
-    X = np.hstack((encoded_features.toarray(), df[['size', 'rooms', 'toilets', 'floors']].values))
-    y = df['price']
-
-    # Train the model
-    model = LinearRegression()
-    model.fit(X, y)
-
+def predict_house_price(wardId, districtId, size, rooms, toilets, floors, type, furnishingSell, urgent, characteristics):
     # Create a DataFrame for the new house
     new_house = pd.DataFrame({
-        'ward': [ward],
-        'district': [district],
-        'size': [size],
-        'rooms': [rooms],
-        'toilets': [toilets],
-        'floors': [floors],
-        'house_type': [house_type],
-        'furnishing_sell': [furnishing_sell],
-        'urgent': [urgent],
-        'pty_characteristics': [pty_characteristics],
+        'WardId': [wardId],
+        'DistrictId': [districtId],
+        'Size': [size],
+        'Rooms': [rooms],
+        'Toilets': [toilets],
+        'Floors': [floors],
+        'Type': [type],
+        'FurnishingSell': [furnishingSell],
+        'Urgent': [urgent],
+        'Characteristics': [characteristics],
     })
 
-    # Encode the new house data with handling for unknown categories
-    encoded_new_house = encoder.transform(new_house[['ward', 'district', 'house_type', 'furnishing_sell', 'urgent', "pty_characteristics"]]).toarray()
-    new_house_features = np.hstack((encoded_new_house, new_house[['size', 'rooms', 'toilets', 'floors']].values))
+    # Tải lại mô hình đã lưu
+    loaded_model = joblib.load('house_price_model.pkl')
 
-    # Predict the price
-    predicted_price = model.predict(new_house_features)
+    # Dự đoán giá cho ngôi nhà mới
+    predicted_price = loaded_model.predict(new_house)
 
     return predicted_price[0]
