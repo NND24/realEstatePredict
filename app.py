@@ -10,7 +10,7 @@ from sklearn.pipeline import Pipeline
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app, resources={r"/housePredict": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.route('/trainHousePredictModel', methods=['POST'])
 def trainHousePredictModel():
@@ -218,7 +218,7 @@ def housePredict():
 
         # Return the predicted price as a JSON response
         return jsonify({
-            'predicted_price': f"{predicted_price:,.0f} VND"
+            'predicted_price': f"{predicted_price[0]:,.0f}"
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -257,7 +257,7 @@ def apartmentPredict():
 
         # Return the predicted price as a JSON response
         return jsonify({
-            'predicted_price': f"{predicted_price:,.0f} VND"
+            'predicted_price': f"{predicted_price[0]:,.0f}"
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -292,7 +292,7 @@ def landPredict():
 
         # Return the predicted price as a JSON response
         return jsonify({
-            'predicted_price': f"{predicted_price:,.0f} VND"
+            'predicted_price': f"{predicted_price[0]:,.0f}"
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -327,7 +327,7 @@ def commercialPredict():
 
         # Return the predicted price as a JSON response
         return jsonify({
-            'predicted_price': f"{predicted_price:,.0f} VND"
+            'predicted_price': f"{predicted_price[0]:,.0f}"
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
