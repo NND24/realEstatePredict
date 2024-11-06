@@ -27,6 +27,48 @@ def trainHousePredictModel():
         # 3. Thiết lập bộ tiền xử lý với handle_unknown='ignore'
         preprocessor = ColumnTransformer(
             transformers=[
+                ('num', StandardScaler(), numerical_features),
+                ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+            ]
+        )
+
+        # 4. Tạo pipeline bao gồm tiền xử lý và mô hình Linear Regression
+        pipeline = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('model', LinearRegression())
+        ])
+
+        # 5. Chia dữ liệu thành tập huấn luyện và tập kiểm tra
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        # 6. Huấn luyện mô hình
+        pipeline.fit(X_train, y_train)
+
+        # 7. Lưu mô hình đã huấn luyện
+        joblib.dump(pipeline, 'house_predict_model.pkl')
+
+        # Return success message as JSON response
+        return jsonify(dict(message='Model saved successfully!')), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+    
+@app.route('/trainApartmentPredictModel', methods=['POST'])
+def trainApartmentPredictModel():
+    try:
+        # 1. Đọc dữ liệu từ CSV và chia thành X và y
+        df = pd.read_csv('apartmentDataset.csv')
+        X = df[['WardId', 'DistrictId', 'Size', 'Rooms', 'Toilets', 'Type', 'FurnishingSell', 'Urgent']]
+        y = df['Price']
+
+        # 2. Xác định các cột phân loại và các cột số
+        categorical_features = ['Type', 'FurnishingSell', 'Urgent', 'WardId', 'DistrictId']
+        numerical_features = ['Size', 'Rooms', 'Toilets']
+
+        # 3. Thiết lập bộ tiền xử lý với handle_unknown='ignore'
+        preprocessor = ColumnTransformer(
+            transformers=[
                 ('num', StandardScaler(), numerical_features),       # Chuẩn hóa các cột số
                 ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)  # One-Hot Encoding cho các cột phân loại
             ]
@@ -45,11 +87,95 @@ def trainHousePredictModel():
         pipeline.fit(X_train, y_train)
 
         # 7. Lưu mô hình đã huấn luyện
-        joblib.dump(pipeline, 'house_price_model.pkl')
+        joblib.dump(pipeline, 'apartment_predict_model.pkl')
 
         # Return the predicted price as a JSON response
         return jsonify({
-            'Lưu thành công'
+            'message': 'Save model success!'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/trainLandPredictModel', methods=['POST'])
+def trainLandPredictModel():
+    try:
+        # 1. Đọc dữ liệu từ CSV và chia thành X và y
+        df = pd.read_csv('landDataset.csv')
+        X = df[['WardId', 'DistrictId', 'Size', 'Type', 'Urgent', 'Characteristics']]
+        y = df['Price']
+
+        # 2. Xác định các cột phân loại và các cột số
+        categorical_features = ['Type', 'Characteristics', 'Urgent', 'WardId', 'DistrictId']
+        numerical_features = ['Size']
+
+        # 3. Thiết lập bộ tiền xử lý với handle_unknown='ignore'
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', StandardScaler(), numerical_features),       # Chuẩn hóa các cột số
+                ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)  # One-Hot Encoding cho các cột phân loại
+            ]
+        )
+
+        # 4. Tạo pipeline bao gồm tiền xử lý và mô hình Linear Regression
+        pipeline = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('model', LinearRegression())
+        ])
+
+        # 5. Chia dữ liệu thành tập huấn luyện và tập kiểm tra
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        # 6. Huấn luyện mô hình
+        pipeline.fit(X_train, y_train)
+
+        # 7. Lưu mô hình đã huấn luyện
+        joblib.dump(pipeline, 'land_predict_model.pkl')
+
+        # Return the predicted price as a JSON response
+        return jsonify({
+            'message': 'Save model success!'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/trainCommercialPredictModel', methods=['POST'])
+def trainCommercialPredictModel():
+    try:
+        # 1. Đọc dữ liệu từ CSV và chia thành X và y
+        df = pd.read_csv('commercialDataset.csv')
+        X = df[['WardId', 'DistrictId', 'Size', 'Type', 'Urgent', 'FurnishingSell']]
+        y = df['Price']
+
+        # 2. Xác định các cột phân loại và các cột số
+        categorical_features = ['Type', 'FurnishingSell', 'Urgent', 'WardId', 'DistrictId']
+        numerical_features = ['Size']
+
+        # 3. Thiết lập bộ tiền xử lý với handle_unknown='ignore'
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', StandardScaler(), numerical_features),       # Chuẩn hóa các cột số
+                ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)  # One-Hot Encoding cho các cột phân loại
+            ]
+        )
+
+        # 4. Tạo pipeline bao gồm tiền xử lý và mô hình Linear Regression
+        pipeline = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('model', LinearRegression())
+        ])
+
+        # 5. Chia dữ liệu thành tập huấn luyện và tập kiểm tra
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        # 6. Huấn luyện mô hình
+        pipeline.fit(X_train, y_train)
+
+        # 7. Lưu mô hình đã huấn luyện
+        joblib.dump(pipeline, 'commercial_predict_model.pkl')
+
+        # Return the predicted price as a JSON response
+        return jsonify({
+            'message': 'Save model success!'
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -85,7 +211,7 @@ def housePredict():
         })
 
         # Tải lại mô hình đã lưu
-        loaded_model = joblib.load('house_price_model.pkl')
+        loaded_model = joblib.load('house_predict_model.pkl')
 
         # Dự đoán giá cho ngôi nhà mới
         predicted_price = loaded_model.predict(new_house)
@@ -124,7 +250,7 @@ def apartmentPredict():
         })
 
         # Tải lại mô hình đã lưu
-        loaded_model = joblib.load('apartment_price_model.pkl')
+        loaded_model = joblib.load('apartment_predict_model.pkl')
 
         # Dự đoán giá cho ngôi nhà mới
         predicted_price = loaded_model.predict(new_apartment)
@@ -159,7 +285,7 @@ def landPredict():
         })
 
         # 8. Tải lại mô hình đã lưu
-        loaded_model = joblib.load('land_price_model.pkl')
+        loaded_model = joblib.load('land_predict_model.pkl')
 
         # 9. Dự đoán giá cho ngôi nhà mới
         predicted_price = loaded_model.predict(new_land)
@@ -194,7 +320,7 @@ def commercialPredict():
         })
 
         # Tải lại mô hình đã lưu
-        loaded_model = joblib.load('commercial_price_model.pkl')
+        loaded_model = joblib.load('commercial_predict_model.pkl')
 
         # Dự đoán giá cho ngôi nhà mới
         predicted_price = loaded_model.predict(new_commercial)
