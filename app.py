@@ -230,7 +230,7 @@ def apartmentPredict():
 
         # Extract the input features from the request
         wardId = data.get('wardId')
-        DistrictId = data.get('DistrictId')
+        districtId = data.get('districtId')
         size = data.get('size')
         rooms = data.get('rooms')
         toilets = data.get('toilets')
@@ -240,7 +240,7 @@ def apartmentPredict():
 
         new_apartment = pd.DataFrame({
             'WardId': [wardId],
-            'DistrictId': [DistrictId],
+            'DistrictId': [districtId],
             'Size': [size],
             'Rooms': [rooms],
             'Toilets': [toilets],
