@@ -7,10 +7,131 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
+import pyodbc
 
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
+
+# Cấu hình kết nối SQL Server
+def get_db_connection():
+    conn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};'
+                          'SERVER=localhost;'
+                          'DATABASE=BatDongSan;'
+                          'UID=sa;'
+                          'PWD=123456789')
+    return conn
+
+# API lấy danh sách dữ liệu từ bảng 'real_estates'
+@app.route('/getRealEstates', methods=['POST'])
+def get_real_estates():
+    # Get query parameters from the request
+    data = request.get_json()
+
+    category_id = int(data.get('categoryId')) if data.get('categoryId') is not None else None
+    price = int(data.get('price')) if data.get('price') is not None else None
+    district_id = int(data.get('districtId')) if data.get('districtId') is not None else None
+    ward_id = int(data.get('wardId')) if data.get('wardId') is not None else None
+    size = float(data.get('size')) if data.get('size') is not None else None
+    rooms = int(data.get('rooms')) if data.get('rooms') is not None else None
+    toilets = int(data.get('toilets')) if data.get('toilets') is not None else None
+    floors = int(data.get('floors')) if data.get('floors') is not None else None
+    estate_type = data.get('type') if data.get('type') is not None else None
+    furnishing_sell = data.get('furnishingSell') if data.get('furnishingSell') is not None else None
+    urgent = data.get('urgent') if data.get('urgent') is not None else None
+    characteristics = data.get('characteristics') if data.get('characteristics') is not None else None
+
+    # Connect to database
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Construct base SQL query
+    query = 'SELECT * FROM HCMRealEstate WHERE Status = ? AND CategoryId = ? AND DistrictId = ? AND WardId = ?'
+    params = ['Đang hiển thị', category_id, district_id, ward_id]
+
+    # Append filters based on the parameters
+    if rooms and rooms > 0:
+        query += ' AND Rooms = ?'
+        params.append(rooms)
+
+    if toilets and toilets > 0:
+        query += ' AND Toilets = ?'
+        params.append(toilets)
+
+    if floors and floors > 0:
+        query += ' AND Floors = ?'
+        params.append(floors)
+
+    if estate_type:
+        query += ' AND Type = ?'
+        params.append(estate_type)
+
+    if furnishing_sell:
+        query += ' AND FurnishingSell = ?'
+        params.append(furnishing_sell)
+
+    if characteristics:
+        query += ' AND Characteristics = ?'
+        params.append(characteristics)
+
+    if urgent:
+        query += ' AND Urgent = ?'
+        if (urgent == "no"):
+            params.append(False)
+        else:
+            params.append(True)
+
+    if price:
+        min_price = price - 1000000000
+        max_price = price + 1000000000
+        query += ' AND (Price >= ? AND Price <= ?)'
+        params.extend([min_price, max_price])
+
+    if size:
+        min_size = size - 20
+        max_size = size + 20
+        query += ' AND (Size >= ? AND Size <= ?)'
+        params.extend([min_size, max_size])
+
+    # Execute the query with the parameters
+    cursor.execute(query, params)
+    real_estates = cursor.fetchall()
+
+    # Close the database connection
+    conn.close()
+
+    # Format the results as a list of dictionaries
+    real_estates_list = [
+        {
+            'RealEstateId': estate[0],
+            'CategoryId': estate[1],
+            'DistrictId': estate[2],
+            'WardId': estate[3],
+            'UserId': estate[4],
+            'Address': estate[5],
+            'Title': estate[6],
+            'Description': estate[7],
+            'TypePost': estate[8],
+            'Size': estate[9],
+            'Price': estate[10],
+            'Unit': estate[11],
+            'Direction': estate[12],
+            'BalconyDirection': estate[13],
+            'FurnishingSell': estate[14],
+            'Rooms': estate[15],
+            'Toilets': estate[16],
+            'Floors': estate[17],
+            'Type': estate[18],
+            'PropertyStatus': estate[19],
+            'PropertyLegalDocument': estate[20],
+            'Characteristics': estate[21],
+            'Urgent': estate[22],
+            'Images': estate[23],
+        } for estate in real_estates
+    ]
+
+    # Return results as JSON
+    return jsonify(real_estates_list)
 
 @app.route('/trainHousePredictModel', methods=['POST'])
 def trainHousePredictModel():
@@ -214,11 +335,15 @@ def housePredict():
         loaded_model = joblib.load('house_predict_model.pkl')
 
         # Dự đoán giá cho ngôi nhà mới
-        predicted_price = loaded_model.predict(new_house)
+        predicted_price = loaded_model.predict(new_house)[0]
+
+        # Đảm bảo giá trị là số dương và làm tròn đến hàng triệu
+        predicted_price = abs(predicted_price)  # Chuyển thành số dương nếu cần
+        rounded_price = round(predicted_price, -6)  # Làm tròn đến hàng triệu
 
         # Return the predicted price as a JSON response
         return jsonify({
-            'predicted_price': f"{predicted_price[0]:,.0f}"
+            'predicted_price': f"{rounded_price:,.0f}"
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -253,11 +378,15 @@ def apartmentPredict():
         loaded_model = joblib.load('apartment_predict_model.pkl')
 
         # Dự đoán giá cho ngôi nhà mới
-        predicted_price = loaded_model.predict(new_apartment)
+        predicted_price = loaded_model.predict(new_apartment)[0]
+
+        # Đảm bảo giá trị là số dương và làm tròn đến hàng triệu
+        predicted_price = abs(predicted_price)  # Chuyển thành số dương nếu cần
+        rounded_price = round(predicted_price, -6)  # Làm tròn đến hàng triệu
 
         # Return the predicted price as a JSON response
         return jsonify({
-            'predicted_price': f"{predicted_price[0]:,.0f}"
+            'predicted_price': f"{rounded_price:,.0f}"
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -288,11 +417,15 @@ def landPredict():
         loaded_model = joblib.load('land_predict_model.pkl')
 
         # 9. Dự đoán giá cho ngôi nhà mới
-        predicted_price = loaded_model.predict(new_land)
+        predicted_price = loaded_model.predict(new_land)[0]
+
+        # Đảm bảo giá trị là số dương và làm tròn đến hàng triệu
+        predicted_price = abs(predicted_price)  # Chuyển thành số dương nếu cần
+        rounded_price = round(predicted_price, -6)  # Làm tròn đến hàng triệu
 
         # Return the predicted price as a JSON response
         return jsonify({
-            'predicted_price': f"{predicted_price[0]:,.0f}"
+            'predicted_price': f"{rounded_price:,.0f}"
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -323,11 +456,15 @@ def commercialPredict():
         loaded_model = joblib.load('commercial_predict_model.pkl')
 
         # Dự đoán giá cho ngôi nhà mới
-        predicted_price = loaded_model.predict(new_commercial)
+        predicted_price = loaded_model.predict(new_commercial)[0]
+
+        # Đảm bảo giá trị là số dương và làm tròn đến hàng triệu
+        predicted_price = abs(predicted_price)  # Chuyển thành số dương nếu cần
+        rounded_price = round(predicted_price, -6)  # Làm tròn đến hàng triệu
 
         # Return the predicted price as a JSON response
         return jsonify({
-            'predicted_price': f"{predicted_price[0]:,.0f}"
+            'predicted_price': f"{rounded_price:,.0f}"
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
