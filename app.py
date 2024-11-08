@@ -46,7 +46,7 @@ def get_real_estates():
     cursor = conn.cursor()
 
     # Construct base SQL query
-    query = 'SELECT * FROM HCMRealEstate WHERE Status = ? AND CategoryId = ? AND DistrictId = ? AND WardId = ?'
+    query = 'SELECT * FROM HCMRealEstate WHERE Status = ? AND CategoryId = ? AND DistrictId = ? AND WardId = ?  AND DeleteStatus = False'
     params = ['Đang hiển thị', category_id, district_id, ward_id]
 
     # Append filters based on the parameters
