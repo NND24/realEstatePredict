@@ -30,7 +30,6 @@ def get_real_estates():
 
     category_id = int(data.get('categoryId')) if data.get('categoryId') is not None else None
     price = int(data.get('price')) if data.get('price') is not None else None
-    district_id = int(data.get('districtId')) if data.get('districtId') is not None else None
     ward_id = int(data.get('wardId')) if data.get('wardId') is not None else None
     size = float(data.get('size')) if data.get('size') is not None else None
     rooms = int(data.get('rooms')) if data.get('rooms') is not None else None
@@ -46,8 +45,8 @@ def get_real_estates():
     cursor = conn.cursor()
 
     # Construct base SQL query
-    query = 'SELECT * FROM HCMRealEstate WHERE Status = ? AND CategoryId = ? AND DistrictId = ? AND WardId = ?  AND DeleteStatus = False'
-    params = ['Đang hiển thị', category_id, district_id, ward_id]
+    query = 'SELECT * FROM HCMRealEstate WHERE Status = ? AND CategoryId = ? AND WardId = ?  AND DeleteStatus = ?'
+    params = ['Đang hiển thị', category_id, ward_id, 'FALSE']
 
     # Append filters based on the parameters
     if rooms and rooms > 0:
@@ -76,7 +75,7 @@ def get_real_estates():
 
     if urgent:
         query += ' AND Urgent = ?'
-        if (urgent == "no"):
+        if (urgent == "0"):
             params.append(False)
         else:
             params.append(True)
@@ -105,28 +104,27 @@ def get_real_estates():
         {
             'RealEstateId': estate[0],
             'CategoryId': estate[1],
-            'DistrictId': estate[2],
-            'WardId': estate[3],
-            'UserId': estate[4],
-            'Address': estate[5],
-            'Title': estate[6],
-            'Description': estate[7],
-            'TypePost': estate[8],
-            'Size': estate[9],
-            'Price': estate[10],
-            'Unit': estate[11],
-            'Direction': estate[12],
-            'BalconyDirection': estate[13],
-            'FurnishingSell': estate[14],
-            'Rooms': estate[15],
-            'Toilets': estate[16],
-            'Floors': estate[17],
-            'Type': estate[18],
-            'PropertyStatus': estate[19],
-            'PropertyLegalDocument': estate[20],
-            'Characteristics': estate[21],
-            'Urgent': estate[22],
-            'Images': estate[23],
+            'WardId': estate[2],
+            'UserId': estate[3],
+            'Address': estate[4],
+            'Title': estate[5],
+            'Description': estate[6],
+            'TypePost': estate[7],
+            'Size': estate[8],
+            'Price': estate[9],
+            'Unit': estate[10],
+            'Direction': estate[11],
+            'BalconyDirection': estate[12],
+            'FurnishingSell': estate[13],
+            'Rooms': estate[14],
+            'Toilets': estate[15],
+            'Floors': estate[16],
+            'Type': estate[17],
+            'PropertyStatus': estate[18],
+            'PropertyLegalDocument': estate[19],
+            'Characteristics': estate[20],
+            'Urgent': estate[21],
+            'Images': estate[22],
         } for estate in real_estates
     ]
 
@@ -316,6 +314,7 @@ def housePredict():
         type = data.get('type')
         furnishingSell = data.get('furnishingSell')
         urgent = data.get('urgent')
+        urgent_numeric = int(urgent) if urgent is not None else 0
         characteristics = data.get('characteristics')
 
         new_house = pd.DataFrame({
@@ -327,7 +326,7 @@ def housePredict():
             'Floors': [floors],
             'Type': [type],
             'FurnishingSell': [furnishingSell],
-            'Urgent': [urgent],
+            'Urgent': [urgent_numeric],
             'Characteristics': [characteristics],
         })
 
@@ -362,6 +361,7 @@ def apartmentPredict():
         type = data.get('type')
         furnishingSell = data.get('furnishingSell')
         urgent = data.get('urgent')
+        urgent_numeric = int(urgent) if urgent is not None else 0
 
         new_apartment = pd.DataFrame({
             'WardId': [wardId],
@@ -371,7 +371,7 @@ def apartmentPredict():
             'Toilets': [toilets],
             'Type': [type],
             'FurnishingSell': [furnishingSell],
-            'Urgent': [urgent],  
+            'Urgent': [urgent_numeric],  
         })
 
         # Tải lại mô hình đã lưu
@@ -403,13 +403,14 @@ def landPredict():
         type = data.get('type')
         characteristics = data.get('characteristics')
         urgent = data.get('urgent')
+        urgent_numeric = int(urgent) if urgent is not None else 0
 
         new_land = pd.DataFrame({
             'WardId': [wardId],
             'DistrictId': [districtId],
             'Size': [size],
             'Type': [type],
-            'Urgent': [urgent],  
+            'Urgent': [urgent_numeric],  
             'Characteristics': [characteristics],
         })
 
@@ -442,6 +443,7 @@ def commercialPredict():
         type = data.get('type')
         furnishingSell = data.get('furnishingSell')
         urgent = data.get('urgent')
+        urgent_numeric = int(urgent) if urgent is not None else 0
 
         new_commercial = pd.DataFrame({
             'WardId': [wardId],
@@ -449,7 +451,7 @@ def commercialPredict():
             'Size': [size],
             'Type': [type],
             'FurnishingSell': [furnishingSell],
-            'Urgent': [urgent],  
+            'Urgent': [urgent_numeric],  
         })
 
         # Tải lại mô hình đã lưu
