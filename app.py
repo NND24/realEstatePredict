@@ -57,10 +57,10 @@ def map_street_level(StreetId):
     elif StreetId in [18]:
         # 1.3
         return 130
-    elif StreetId in []:
+    elif StreetId in [12]:
         # 1.2
         return 120
-    elif StreetId in [12,24]:
+    elif StreetId in [24]:
         # 1.1
         return 110
     elif StreetId in [23]:
@@ -247,6 +247,7 @@ def trainHousePredictModel():
         # 1. Đọc dữ liệu từ CSV và chia thành X và y
         df = pd.read_csv('houseDataset.csv')
 
+        # 2. Chuyển đổi quận và đường sang cấp độ tương ứng
         df['DistrictLevel'] = df['DistrictId'].apply(map_district_level)
         df['DistrictLevel'] = df['DistrictLevel'].fillna(0).astype(int)
 
@@ -256,11 +257,11 @@ def trainHousePredictModel():
         X = df[['DistrictLevel', 'StreetLevel', 'Size', 'Rooms', 'Toilets', 'Floors', 'Type', 'FurnishingSell', 'Urgent', 'Characteristics']]
         y = df['Price']
 
-        # 2. Xác định các cột phân loại và các cột số
+        # 3. Xác định các cột phân loại và các cột số
         categorical_features = ['Type', 'FurnishingSell', 'Characteristics', 'Urgent']
         numerical_features = ['DistrictLevel', 'StreetLevel', 'Size', 'Rooms', 'Toilets', 'Floors']
 
-        # 3. Thiết lập bộ tiền xử lý với handle_unknown='ignore'
+        # 4. Thiết lập bộ tiền xử lý với handle_unknown='ignore'
         preprocessor = ColumnTransformer(
             transformers=[
                 ('num', StandardScaler(), numerical_features),
@@ -268,19 +269,19 @@ def trainHousePredictModel():
             ]
         )
 
-        # 4. Tạo pipeline bao gồm tiền xử lý và mô hình Linear Regression
+        # 5. Tạo pipeline bao gồm tiền xử lý và mô hình Linear Regression
         pipeline = Pipeline(steps=[
             ('preprocessor', preprocessor),
             ('model', LinearRegression())
         ])
 
-        # 5. Chia dữ liệu thành tập huấn luyện và tập kiểm tra
+        # 6. Chia dữ liệu thành tập huấn luyện và tập kiểm tra
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        # 6. Huấn luyện mô hình
+        # 7. Huấn luyện mô hình
         pipeline.fit(X_train, y_train)
 
-        # 7. Lưu mô hình đã huấn luyện
+        # 8. Lưu mô hình đã huấn luyện
         joblib.dump(pipeline, 'house_predict_model.pkl')
 
         # Return success message as JSON response
